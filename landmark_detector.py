@@ -31,7 +31,6 @@ class FaceLandmarkDetector:
         try:
             from mediapipe.tasks import python
             from mediapipe.tasks.python import vision
-            from mediapipe.framework.formats import landmark_pb2
 
             if not Path(self.model_path).exists():
                 raise FileNotFoundError(f"Modelo no encontrado: {self.model_path}")
@@ -39,7 +38,7 @@ class FaceLandmarkDetector:
             # Intentar con Coral TPU
             if self.use_tpu:
                 try:
-                    from mediapipe.tasks.python.core import BaseOptions
+                    from mediapipe.tasks.python import BaseOptions
 
                     base_options = BaseOptions(model_asset_path=self.model_path)
                     options = vision.FaceLandmarkerOptions(
@@ -60,7 +59,7 @@ class FaceLandmarkDetector:
     def _init_detector_cpu(self) -> None:
         """Inicializa Face Landmarker en CPU."""
         try:
-            from mediapipe.tasks.python.core import BaseOptions
+            from mediapipe.tasks.python import BaseOptions
             from mediapipe.tasks.python import vision
 
             base_options = BaseOptions(model_asset_path=self.model_path)
@@ -87,7 +86,6 @@ class FaceLandmarkDetector:
             return None
 
         try:
-            from mediapipe.framework.formats import landmark_pb2
             import mediapipe as mp
 
             # Convertir BGR a RGB
