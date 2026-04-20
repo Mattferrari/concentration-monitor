@@ -64,6 +64,10 @@ class ConcentrationMonitor:
         self.ear_deque = deque(maxlen=900)  # 30s a 30fps
         self.mar_deque = deque(maxlen=900)
 
+        # Suavizado temporal para métricas ruidosas (15 frames ≈ 0.5s)
+        self.gaze_deque = deque(maxlen=15)
+        self.yaw_deque = deque(maxlen=15)
+
         # Logging a CSV
         self.log_dir = Path("logs")
         self.log_dir.mkdir(exist_ok=True)
@@ -170,6 +174,12 @@ class ConcentrationMonitor:
                     gaze_dev = compute_gaze_deviation(landmarks)
                     head_yaw = compute_head_yaw(landmarks)
 
+                    # Suavizar gaze y yaw con media móvil para reducir ruido de landmarks
+                    self.gaze_deque.append(gaze_dev)
+                    self.yaw_deque.append(head_yaw)
+                    gaze_dev = float(np.mean(self.gaze_deque))
+                    head_yaw = float(np.mean(self.yaw_deque))
+
                     mar = compute_mouth_aspect_ratio(landmarks)
                     self.mar_deque.append(mar)
 
@@ -189,6 +199,8 @@ class ConcentrationMonitor:
                     if time.time() - self.face_missing_since > 5:
                         self.ear_deque.clear()
                         self.mar_deque.clear()
+                        self.gaze_deque.clear()
+                        self.yaw_deque.clear()
                         self.face_missing_since = None
 
                 # Logging cada interval_seconds

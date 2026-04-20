@@ -97,41 +97,37 @@ def compute_gaze_deviation(landmarks: list[tuple[float, float, float]]) -> float
     """
     Calcula la desviación de la mirada (gaze deviation) en grados.
 
-    Usa los landmarks del iris para estimar el ángulo horizontal de mirada.
+    Usa los landmarks del iris de AMBOS ojos y promedia para mayor estabilidad.
 
     Índices iris: izq [468-472], dch [473-477]
 
     Returns:
         Ángulo en grados (-90 a +90, donde 0 = mirando al frente)
     """
-    # Usar iris izquierdo para simplificar
-    iris_left = [468, 469, 470, 471, 472]
-    iris_right = [473, 474, 475, 476, 477]
+    iris_left_idx = [468, 469, 470, 471, 472]
+    iris_right_idx = [473, 474, 475, 476, 477]
 
-    # Centro del iris izquierdo
-    iris_l_center = (
-        np.mean([landmarks[i][0] for i in iris_left]),
-        np.mean([landmarks[i][1] for i in iris_left]),
-    )
+    # Centro de cada iris
+    iris_l_cx = np.mean([landmarks[i][0] for i in iris_left_idx])
+    iris_r_cx = np.mean([landmarks[i][0] for i in iris_right_idx])
 
-    # Centro del iris derecho
-    iris_r_center = (
-        np.mean([landmarks[i][0] for i in iris_right]),
-        np.mean([landmarks[i][1] for i in iris_right]),
-    )
-
-    # Bounding box del ojo izquierdo (aproximado)
+    # Bounding box horizontal de cada ojo
     left_eye_indices = [362, 385, 387, 263, 373, 380]
-    left_eye_x = [landmarks[i][0] for i in left_eye_indices]
-    left_eye_bbox_left = min(left_eye_x)
-    left_eye_bbox_right = max(left_eye_x)
+    right_eye_indices = [33, 160, 158, 133, 153, 144]
 
-    # Desviación horizontal relativa al centro del ojo
-    iris_pos_left = (iris_l_center[0] - left_eye_bbox_left) / (
-        left_eye_bbox_right - left_eye_bbox_left + 1e-6
-    )
-    # Convertir a grados (-45 a +45)
-    gaze_angle = (iris_pos_left - 0.5) * 90.0
+    left_eye_x = [landmarks[i][0] for i in left_eye_indices]
+    right_eye_x = [landmarks[i][0] for i in right_eye_indices]
+
+    left_bbox_min, left_bbox_max = min(left_eye_x), max(left_eye_x)
+    right_bbox_min, right_bbox_max = min(right_eye_x), max(right_eye_x)
+
+    # Posición normalizada del iris dentro del ojo (0=extremo izq, 1=extremo dch)
+    iris_pos_left = (iris_l_cx - left_bbox_min) / (left_bbox_max - left_bbox_min + 1e-6)
+    iris_pos_right = (iris_r_cx - right_bbox_min) / (right_bbox_max - right_bbox_min + 1e-6)
+
+    # Promedio de ambos ojos y conversión a grados
+    avg_pos = (iris_pos_left + iris_pos_right) / 2.0
+    gaze_angle = (avg_pos - 0.5) * 90.0
 
     return np.clip(gaze_angle, -90, 90)
 
@@ -161,20 +157,22 @@ def compute_head_yaw(landmarks: list[tuple[float, float, float]]) -> float:
             dtype=np.float32,
         )
 
-        # Puntos 2D en la imagen (landmarks)
+        # Puntos 2D en la imagen: convertir landmarks normalizados [0,1] a píxeles (640x480)
+        # MediaPipe devuelve coordenadas normalizadas, pero solvePnP necesita píxeles
+        W, H = 640.0, 480.0
         image_points = np.array(
             [
-                [landmarks[1][0], landmarks[1][1]],  # Nariz
-                [landmarks[152][0], landmarks[152][1]],  # Mentón
-                [landmarks[234][0], landmarks[234][1]],  # Pómulo izquierdo
-                [landmarks[454][0], landmarks[454][1]],  # Pómulo derecho
+                [landmarks[1][0] * W, landmarks[1][1] * H],  # Nariz
+                [landmarks[152][0] * W, landmarks[152][1] * H],  # Mentón
+                [landmarks[234][0] * W, landmarks[234][1] * H],  # Pómulo izquierdo
+                [landmarks[454][0] * W, landmarks[454][1] * H],  # Pómulo derecho
             ],
             dtype=np.float32,
         )
 
         # Parámetros intrínsecos de la cámara (aproximados para 640x480)
         focal_length = 500.0
-        center = (320.0, 240.0)
+        center = (W / 2, H / 2)
         camera_matrix = np.array(
             [[focal_length, 0, center[0]], [0, focal_length, center[1]], [0, 0, 1]],
             dtype=np.float32,
@@ -225,14 +223,14 @@ def compute_mouth_aspect_ratio(landmarks: list[tuple[float, float, float]]) -> f
     return np.clip(mar, 0, 1.0)
 
 
-def detect_yawn(mar_deque: deque[float], threshold: float = 0.6, duration_frames: int = 60) -> bool:
+def detect_yawn(mar_deque: deque[float], threshold: float = 0.72, duration_frames: int = 90) -> bool:
     """
     Detecta si hay bostezo sostenido (MAR > threshold durante duration_frames).
 
     Args:
         mar_deque: deque de valores MAR (30fps)
-        threshold: umbral MAR para bostezo
-        duration_frames: fotogramas consecutivos para confirmar bostezo (60 = 2s a 30fps)
+        threshold: umbral MAR para bostezo (0.72 evita falsos positivos al mirar abajo)
+        duration_frames: fotogramas para confirmar bostezo (90 = 3s a 30fps)
 
     Returns:
         True si se detecta bostezo sostenido
@@ -242,7 +240,7 @@ def detect_yawn(mar_deque: deque[float], threshold: float = 0.6, duration_frames
 
     recent_mars = list(mar_deque)[-duration_frames:]
     yawn_count = sum(1 for mar in recent_mars if mar > threshold)
-    return yawn_count > (duration_frames * 0.7)  # 70% de frames con MAR alto
+    return yawn_count > (duration_frames * 0.75)  # 75% de frames con MAR alto
 
 
 def normalize_value(value: float, min_val: float, max_val: float) -> float:
@@ -289,16 +287,25 @@ def compute_concentration_score(
         Score de concentración 0-10
     """
     # Puntuaciones por métrica (0-1)
-    eye_score = normalize_value(ear, 0.15, 0.35)
-    gaze_score = 1 - normalize_value(abs(gaze_deviation), 0, 30)
-    head_score = 1 - normalize_value(abs(head_yaw), 0, 35)
-    blink_score = normalize_value(blink_rate, 8, 20)
+    # EAR: rango ampliado para cubrir ojos ligeramente cerrados al leer
+    eye_score = normalize_value(ear, 0.10, 0.35)
+
+    # Gaze: zona muerta de ±8° (ruido normal de MediaPipe) → degrada hasta ±38°
+    gaze_adj = max(0.0, abs(gaze_deviation) - 8.0)
+    gaze_score = 1.0 - normalize_value(gaze_adj, 0, 30)
+
+    # Head yaw: zona muerta de ±8° → degrada hasta ±43°
+    yaw_adj = max(0.0, abs(head_yaw) - 8.0)
+    head_score = 1.0 - normalize_value(yaw_adj, 0, 35)
+
+    # Blink: rango ampliado (4–25/min) para no penalizar concentración intensa
+    blink_score = normalize_value(blink_rate, 4, 25)
 
     # Combinar con pesos
     raw_score = (0.30 * eye_score + 0.35 * gaze_score + 0.25 * head_score + 0.10 * blink_score)
 
     # Penalización por bostezo
-    yawn_penalty = 1.5 if yawn_detected else 0
+    yawn_penalty = 2.5 if yawn_detected else 0
 
     # Escalar a 0-10 y aplicar penalización
     final_score = (raw_score * 10) - yawn_penalty
