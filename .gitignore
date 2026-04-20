@@ -1,0 +1,41 @@
+# Entorno virtual
+venv/
+env/
+ENV/
+
+# Archivos del modelo
+models/face_landmarker.task
+
+# Logs
+logs/session_*.csv
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporal
+.DS_Store
+*.log
+
+# Archivos de desarrollo
+.env
+.env.local
+
+# Archivos temporales de OpenCV
+*.png
+*.jpg
+*.jpeg
+temp_*
