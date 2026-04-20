@@ -45,15 +45,15 @@ class FaceLandmarkDetector:
                         base_options=base_options, num_faces=1, min_face_detection_confidence=0.5
                     )
                     self.detector = vision.FaceLandmarker.create_from_options(options)
-                    print("✓ Face Landmarker inicializado (Intentando Coral TPU)")
+                    print("[OK] Face Landmarker inicializado (Intentando Coral TPU)")
                 except Exception as tpu_error:
-                    print(f"⚠ Coral TPU no disponible: {tpu_error}, usando CPU...")
+                    print(f"[WARN] Coral TPU no disponible: {tpu_error}, usando CPU...")
                     self._init_detector_cpu()
             else:
                 self._init_detector_cpu()
 
         except Exception as e:
-            print(f"✗ Error inicializando Face Landmarker: {e}")
+            print(f"[ERROR] Error inicializando Face Landmarker: {e}")
             self.detector = None
 
     def _init_detector_cpu(self) -> None:
@@ -67,9 +67,9 @@ class FaceLandmarkDetector:
                 base_options=base_options, num_faces=1, min_face_detection_confidence=0.5
             )
             self.detector = vision.FaceLandmarker.create_from_options(options)
-            print("✓ Face Landmarker inicializado (CPU)")
+            print("[OK] Face Landmarker inicializado (CPU)")
         except Exception as e:
-            print(f"✗ Error inicializando Face Landmarker CPU: {e}")
+            print(f"[ERROR] Error inicializando Face Landmarker CPU: {e}")
             self.detector = None
 
     def detect(self, frame: np.ndarray) -> Optional[list[tuple[float, float, float]]]:

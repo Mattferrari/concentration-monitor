@@ -96,7 +96,7 @@ class ConcentrationMonitor:
                 ["timestamp", "score", "ear", "gaze_dev", "head_yaw", "blink_rate", "recommendation"]
             )
 
-        print(f"📝 Logging a: {csv_path}")
+        print(f"[LOG] Logging a: {csv_path}")
         return csv_path
 
     def _log_score(
@@ -135,7 +135,7 @@ class ConcentrationMonitor:
 
     def run(self) -> None:
         """Ejecuta el loop principal del sistema."""
-        print("🚀 Iniciando monitor de concentración...")
+        print(" Iniciando monitor de concentración...")
         print("Presiona 'q' o Ctrl+C para salir\n")
 
         try:
@@ -148,7 +148,7 @@ class ConcentrationMonitor:
                 try:
                     frame = next(frame_generator)
                 except StopIteration:
-                    print("⚠ Captura de frames terminada")
+                    print("[WARN] Captura de frames terminada")
                     break
 
                 # Detectar landmarks
@@ -243,9 +243,9 @@ class ConcentrationMonitor:
                 self.frame_count += 1
 
         except KeyboardInterrupt:
-            print("\n⏹ Detenido por usuario")
+            print("\n Detenido por usuario")
         except Exception as e:
-            print(f"✗ Error: {e}")
+            print(f"[ERROR] Error: {e}")
             import traceback
 
             traceback.print_exc()
@@ -254,13 +254,13 @@ class ConcentrationMonitor:
 
     def cleanup(self) -> None:
         """Limpia recursos."""
-        print("\n🧹 Limpiando recursos...")
+        print("\n Limpiando recursos...")
         self.capture.release()
         self.detector.release()
         cv2.destroyAllWindows()
-        print(f"✓ {self.frame_count} frames procesados")
-        print(f"✓ Log guardado en: {self.csv_path}")
-        print("✓ Salida limpia")
+        print(f"[OK] {self.frame_count} frames procesados")
+        print(f"[OK] Log guardado en: {self.csv_path}")
+        print("[OK] Salida limpia")
 
 
 def main():
@@ -299,7 +299,7 @@ def main():
         width, height = map(int, args.resolution.split("x"))
         resolution = (width, height)
     except ValueError:
-        print(f"✗ Formato de resolución inválido: {args.resolution}")
+        print(f"[ERROR] Formato de resolución inválido: {args.resolution}")
         print("Use: --resolution 640x480")
         sys.exit(1)
 

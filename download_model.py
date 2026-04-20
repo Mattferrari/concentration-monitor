@@ -21,16 +21,16 @@ def download_model() -> bool:
     MODEL_DIR.mkdir(exist_ok=True)
 
     if MODEL_PATH.exists():
-        print(f"✓ Modelo ya existe en {MODEL_PATH}")
+        print(f"[OK] Modelo ya existe en {MODEL_PATH}")
         return True
 
-    print(f"📥 Descargando modelo desde {MODEL_URL}...")
+    print(f"Descargando modelo desde {MODEL_URL}...")
     try:
         urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
-        print(f"✓ Modelo descargado exitosamente en {MODEL_PATH}")
+        print(f"[OK] Modelo descargado exitosamente en {MODEL_PATH}")
         return True
     except Exception as e:
-        print(f"✗ Error descargando modelo: {e}", file=sys.stderr)
+        print(f"[ERROR] Error descargando modelo: {e}", file=sys.stderr)
         if MODEL_PATH.exists():
             MODEL_PATH.unlink()
         return False

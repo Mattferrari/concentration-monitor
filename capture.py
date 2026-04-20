@@ -37,10 +37,10 @@ class FrameCapture:
             )
             self.camera.configure(config)
             self.camera.start()
-            print(f"✓ Cámara Raspberry Pi inicializada: {self.resolution} @ {self.fps}fps")
+            print(f"[OK] Cámara Raspberry Pi inicializada: {self.resolution} @ {self.fps}fps")
             self.use_picamera2 = True
         except Exception as e:
-            print(f"⚠ picamera2 no disponible ({e}), usando OpenCV...")
+            print(f"[WARN] picamera2 no disponible ({e}), usando OpenCV...")
             try:
                 # Fallback a OpenCV con cámara USB
                 self.camera = cv2.VideoCapture(0)
@@ -50,10 +50,10 @@ class FrameCapture:
                 self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
                 self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
                 self.camera.set(cv2.CAP_PROP_FPS, self.fps)
-                print(f"✓ Cámara USB inicializada: {self.resolution} @ {self.fps}fps")
+                print(f"[OK] Cámara USB inicializada: {self.resolution} @ {self.fps}fps")
                 self.use_picamera2 = False
             except Exception as e2:
-                print(f"✗ Error inicializando cámara: {e2}")
+                print(f"[ERROR] Error inicializando cámara: {e2}")
                 self.camera = None
                 self.use_picamera2 = False
 
@@ -100,6 +100,6 @@ class FrameCapture:
                     self.camera.stop()
                 else:
                     self.camera.release()
-                print("✓ Cámara liberada")
+                print("[OK] Cámara liberada")
             except Exception as e:
                 print(f"Error liberando cámara: {e}")

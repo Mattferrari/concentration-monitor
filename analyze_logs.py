@@ -21,10 +21,10 @@ def analyze_csv(csv_path: str) -> None:
     """
     csv_file = Path(csv_path)
     if not csv_file.exists():
-        print(f"❌ Archivo no encontrado: {csv_path}")
+        print(f"[ERROR] Archivo no encontrado: {csv_path}")
         sys.exit(1)
 
-    print(f"\n📊 Analizando: {csv_file.name}\n")
+    print(f"\n Analizando: {csv_file.name}\n")
 
     # Leer datos
     scores = []
@@ -62,11 +62,11 @@ def analyze_csv(csv_path: str) -> None:
                     continue
 
     except Exception as e:
-        print(f"❌ Error leyendo archivo: {e}")
+        print(f"[ERROR] Error leyendo archivo: {e}")
         sys.exit(1)
 
     if not scores:
-        print("❌ No hay datos válidos en el archivo")
+        print("[ERROR] No hay datos válidos en el archivo")
         sys.exit(1)
 
     # Calcular estadísticas
@@ -87,28 +87,28 @@ def analyze_csv(csv_path: str) -> None:
     print("REPORTE DE CONCENTRACIÓN")
     print("=" * 60)
 
-    print(f"\n📋 INFORMACIÓN GENERAL")
+    print(f"\n INFORMACIÓN GENERAL")
     print(f"  Muestras analizadas: {len(scores)}")
     print(f"  Duración: {timestamps[0]} → {timestamps[-1]}")
     if len(scores) >= 2:
         duration_min = (len(scores) - 1) * 10 / 60  # asumiendo 10s entre muestras
         print(f"  Tiempo total: {duration_min:.1f} minutos")
 
-    print(f"\n🎯 SCORE DE CONCENTRACIÓN (0-10)")
+    print(f"\n SCORE DE CONCENTRACIÓN (0-10)")
     print(f"  Promedio: {avg_score:.2f}")
     print(f"  Rango: {min_score:.1f} - {max_score:.1f}")
     print(f"  Distribución:")
-    print(f"    🔴 Bajo (0-4):    {low_score_count:3d} ({100*low_score_count/len(scores):.1f}%)")
-    print(f"    🟡 Medio (4-7):   {medium_score_count:3d} ({100*medium_score_count/len(scores):.1f}%)")
-    print(f"    🟢 Alto (7-10):   {high_score_count:3d} ({100*high_score_count/len(scores):.1f}%)")
+    print(f"    Bajo  (0-4):   {low_score_count:3d} ({100*low_score_count/len(scores):.1f}%)")
+    print(f"    Medio (4-7):   {medium_score_count:3d} ({100*medium_score_count/len(scores):.1f}%)")
+    print(f"    Alto  (7-10):  {high_score_count:3d} ({100*high_score_count/len(scores):.1f}%)")
 
-    print(f"\n👁️  MÉTRICAS INDIVIDUALES")
+    print(f"\n  MÉTRICAS INDIVIDUALES")
     print(f"  Eye Aspect Ratio (EAR):     {avg_ear:.3f}  (normal: 0.15-0.35)")
     print(f"  Desviación de Mirada:       {avg_gaze:.1f}°  (normal: <30°)")
     print(f"  Rotación de Cabeza (Yaw):   {avg_yaw:.1f}°  (normal: <35°)")
     print(f"  Parpadeos por Minuto:       {avg_blink:.1f}   (normal: 12-20)")
 
-    print(f"\n⚠️  PERÍODOS DE BAJA CONCENTRACIÓN")
+    print(f"\n[WARN]  PERÍODOS DE BAJA CONCENTRACIÓN")
     if low_concentration_periods:
         print(f"  Total detectados: {len(low_concentration_periods)}")
         if len(low_concentration_periods) <= 10:
@@ -119,9 +119,9 @@ def analyze_csv(csv_path: str) -> None:
                 print(f"    {ts}: score={score:.1f}")
             print(f"    ... y {len(low_concentration_periods) - 5} más")
     else:
-        print(f"  Ninguno detectado ✓")
+        print(f"  Ninguno detectado [OK]")
 
-    print(f"\n💡 RECOMENDACIONES")
+    print(f"\n RECOMENDACIONES")
     if avg_score < 5.0:
         print(f"  • La concentración es baja. Buscar factores de distracción.")
         print(f"  • Considerar descansos más frecuentes.")
@@ -149,7 +149,7 @@ def list_sessions() -> None:
     """Lista todas las sesiones disponibles en logs/."""
     logs_dir = Path("logs")
     if not logs_dir.exists():
-        print("❌ Directorio logs/ no encontrado")
+        print("[ERROR] Directorio logs/ no encontrado")
         return
 
     csv_files = sorted(logs_dir.glob("session_*.csv"))
@@ -157,7 +157,7 @@ def list_sessions() -> None:
         print("No hay sesiones registradas en logs/")
         return
 
-    print(f"📁 Sesiones disponibles en {logs_dir}:\n")
+    print(f" Sesiones disponibles en {logs_dir}:\n")
     for i, csv_file in enumerate(csv_files, 1):
         size = csv_file.stat().st_size
         print(f"  {i}. {csv_file.name}  ({size:,} bytes)")

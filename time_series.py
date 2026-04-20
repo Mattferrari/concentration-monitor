@@ -87,18 +87,18 @@ class ConcentrationTimeSeries:
 
         # Crítico: 12 muestras = 2 min a 10s interval
         if self.critical_counter >= 12 and moving_avg < self.critical_threshold:
-            return "🚨 ¡DESCANSA AHORA! Concentración muy baja (< 4.0)"
+            return "[CRITICO] ¡DESCANSA AHORA! Concentración muy baja (< 4.0)"
 
         # Aviso: 30 muestras = 5 min a 10s interval
         if (
             self.warning_counter >= 30
             and self.critical_threshold <= moving_avg < self.warning_threshold
         ):
-            return "⚠️ Descansa en 10 minutos (concentración 4.0-6.0)"
+            return "[WARN] Descansa en 10 minutos (concentración 4.0-6.0)"
 
         # Óptimo: sin recomendación
         if moving_avg >= self.optimal_threshold:
-            return "✓ Concentración óptima"
+            return "[OK] Concentración óptima"
 
         # Rango normal: sin recomendación
         return ""

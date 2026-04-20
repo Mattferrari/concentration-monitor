@@ -24,40 +24,31 @@ def compute_eye_aspect_ratio(landmarks: list[tuple[float, float, float]]) -> tup
     """
     Calcula el Eye Aspect Ratio (EAR) para ambos ojos.
 
-    Índices MediaPipe:
-    - Ojo derecho: [33, 160, 158, 133, 153, 144]
+    Fórmula: EAR = (||p2-p6|| + ||p3-p5||) / (2 * ||p1-p4||)
+    Donde p1,p4 son las esquinas horizontales y p2/p6, p3/p5 son pares verticales.
+
+    Índices MediaPipe [p1, p2, p3, p4, p5, p6]:
+    - Ojo derecho:   [33, 160, 158, 133, 153, 144]
     - Ojo izquierdo: [362, 385, 387, 263, 373, 380]
 
     Returns:
-        Tupla (ear_izq, ear_dch) normalizados [0, 1]
+        Tupla (ear_izq, ear_dch) en rango ~0.1-0.4
     """
-    # Ojo derecho
-    right_eye = [33, 160, 158, 133, 153, 144]
-    p1_r = (landmarks[right_eye[1]][0], landmarks[right_eye[1]][1])
-    p2_r = (landmarks[right_eye[2]][0], landmarks[right_eye[2]][1])
-    p3_r = (landmarks[right_eye[4]][0], landmarks[right_eye[4]][1])
-    p4_r = (landmarks[right_eye[5]][0], landmarks[right_eye[5]][1])
-    p5_r = (landmarks[right_eye[0]][0], landmarks[right_eye[0]][1])
-    p6_r = (landmarks[right_eye[3]][0], landmarks[right_eye[3]][1])
+    def _ear(idx: list[int]) -> float:
+        # p1=idx[0] y p4=idx[3]: esquinas horizontales (denominador)
+        # p2=idx[1] y p6=idx[5]: par vertical 1 (numerador)
+        # p3=idx[2] y p5=idx[4]: par vertical 2 (numerador)
+        p1 = (landmarks[idx[0]][0], landmarks[idx[0]][1])
+        p2 = (landmarks[idx[1]][0], landmarks[idx[1]][1])
+        p3 = (landmarks[idx[2]][0], landmarks[idx[2]][1])
+        p4 = (landmarks[idx[3]][0], landmarks[idx[3]][1])
+        p5 = (landmarks[idx[4]][0], landmarks[idx[4]][1])
+        p6 = (landmarks[idx[5]][0], landmarks[idx[5]][1])
+        horizontal = euclidean_distance(p1, p4)
+        return (euclidean_distance(p2, p6) + euclidean_distance(p3, p5)) / (2.0 * horizontal) if horizontal > 0 else 0.0
 
-    dist1_r = euclidean_distance(p1_r, p4_r)
-    dist2_r = euclidean_distance(p2_r, p5_r)
-    dist3_r = euclidean_distance(p3_r, p6_r)
-    ear_right = (dist2_r + dist3_r) / (2.0 * dist1_r) if dist1_r > 0 else 0
-
-    # Ojo izquierdo
-    left_eye = [362, 385, 387, 263, 373, 380]
-    p1_l = (landmarks[left_eye[1]][0], landmarks[left_eye[1]][1])
-    p2_l = (landmarks[left_eye[2]][0], landmarks[left_eye[2]][1])
-    p3_l = (landmarks[left_eye[4]][0], landmarks[left_eye[4]][1])
-    p4_l = (landmarks[left_eye[5]][0], landmarks[left_eye[5]][1])
-    p5_l = (landmarks[left_eye[0]][0], landmarks[left_eye[0]][1])
-    p6_l = (landmarks[left_eye[3]][0], landmarks[left_eye[3]][1])
-
-    dist1_l = euclidean_distance(p1_l, p4_l)
-    dist2_l = euclidean_distance(p2_l, p5_l)
-    dist3_l = euclidean_distance(p3_l, p6_l)
-    ear_left = (dist2_l + dist3_l) / (2.0 * dist1_l) if dist1_l > 0 else 0
+    ear_right = _ear([33, 160, 158, 133, 153, 144])
+    ear_left  = _ear([362, 385, 387, 263, 373, 380])
 
     return (ear_left, ear_right)
 
@@ -287,10 +278,13 @@ def compute_concentration_score(
         Score de concentración 0-10
     """
     # Puntuaciones por métrica (0-1)
-    # EAR: rango ampliado para cubrir ojos ligeramente cerrados al leer
-    eye_score = normalize_value(ear, 0.10, 0.35)
 
-    # Gaze: zona muerta de ±8° (ruido normal de MediaPipe) → degrada hasta ±38°
+    # EAR: mínimo bajo (0.05) porque al mirar hacia abajo el párpado baja
+    # fisiológicamente — no es somnolencia, es postura de lectura normal.
+    # El EAR solo penaliza ojos casi cerrados (<0.07) o adormilados.
+    eye_score = normalize_value(ear, 0.05, 0.30)
+
+    # Gaze: zona muerta de ±8° → degrada hasta ±38°
     gaze_adj = max(0.0, abs(gaze_deviation) - 8.0)
     gaze_score = 1.0 - normalize_value(gaze_adj, 0, 30)
 
@@ -298,11 +292,11 @@ def compute_concentration_score(
     yaw_adj = max(0.0, abs(head_yaw) - 8.0)
     head_score = 1.0 - normalize_value(yaw_adj, 0, 35)
 
-    # Blink: rango ampliado (4–25/min) para no penalizar concentración intensa
+    # Blink: rango (4–25/min) para no penalizar concentración intensa
     blink_score = normalize_value(blink_rate, 4, 25)
 
-    # Combinar con pesos
-    raw_score = (0.30 * eye_score + 0.35 * gaze_score + 0.25 * head_score + 0.10 * blink_score)
+    # Pesos: eye reducido (párpado varía con la postura), gaze y head son más fiables
+    raw_score = (0.15 * eye_score + 0.45 * gaze_score + 0.30 * head_score + 0.10 * blink_score)
 
     # Penalización por bostezo
     yawn_penalty = 2.5 if yawn_detected else 0
